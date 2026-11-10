@@ -116,7 +116,8 @@ def history(node: int | None = None, limit: int = 100, hours: float | None = Non
     wheres = []
     args = []
     if node is not None:
-        wheres.append(f"node={int(node)}")
+        wheres.append("node = ?")
+        args.append(int(node))
     if hours is not None and hours > 0:
         wheres.append("ts > ?")
         args.append(time.time() - hours * 3600)
@@ -151,8 +152,9 @@ def pump_events(limit: int = 100):
     No schema changes — reads from existing `readings` table only.
     """
     rows = db().execute(
-        "SELECT ts, data FROM readings WHERE node=1 ORDER BY id ASC LIMIT 2000"
+        "SELECT ts, data FROM readings WHERE node=1 ORDER BY id DESC LIMIT 2000"
     ).fetchall()
+    rows.reverse()
     events = []
     prev_relay = None
     on_ts = None

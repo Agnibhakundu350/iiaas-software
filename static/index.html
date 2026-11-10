@@ -109,7 +109,6 @@ img{max-width:100%;height:auto}
 ═══════════════════════════════════════════════════ */
 #alertbanner {
   position:fixed;top:var(--nav-h);left:0;right:0;z-index:190;
-  display:none;
   background:var(--bad);color:#fff;
   padding:10px 16px;
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -326,7 +325,7 @@ canvas{width:100%;height:220px;display:block;border-radius:4px}
   canvas{height:180px}
 }
 @media(max-width:400px){
-  .navbtn span{display:none}
+  .navbtn .nav-text{display:none}
   .navbtn{padding:0 10px}
 }
 </style>
@@ -347,10 +346,10 @@ canvas{width:100%;height:220px;display:block;border-radius:4px}
   </div>
   <div id="navtabs" role="tablist">
     <button class="navbtn active" role="tab" aria-selected="true" aria-controls="page-dashboard" onclick="showPage('dashboard',this)">
-      <span>📊</span> <span>Dashboard</span>
+      <span>📊</span> <span class="nav-text">Dashboard</span>
     </button>
     <button class="navbtn" role="tab" aria-selected="false" aria-controls="page-alerts" onclick="showPage('alerts',this)">
-      <span>🔔</span> <span>Alerts</span> <span id="alertcount" style="display:none;background:rgba(255,255,255,0.3);border-radius:10px;padding:1px 6px;font-size:.72rem"></span>
+      <span>🔔</span> <span class="nav-text">Alerts</span> <span id="alertcount" style="display:none;background:rgba(255,255,255,0.3);border-radius:10px;padding:1px 6px;font-size:.72rem"></span>
     </button>
   </div>
   <div id="statusbadge" aria-live="polite">
@@ -560,6 +559,7 @@ function toggleMute() {
 function dismissBanner() {
   bannerDismissed = true;
   document.getElementById('alertbanner').classList.add('hidden');
+  document.documentElement.style.setProperty('--banner-h', '0px');
 }
 
 /* ═══════════════════════════════════════════════════
@@ -773,8 +773,9 @@ function updateBanner(insights) {
     return;
   }
 
-  // Build a stable key from the set of active alert messages
-  const newKeys = new Set(critical.map(i => i.msg));
+  // Build a stable key from the set of active alert messages (mask numbers so fluctuating readings do not re-beep)
+  const normalizeMsg = m => m.replace(/[\d.]+/g, '#');
+  const newKeys = new Set(critical.map(i => normalizeMsg(i.msg)));
   const keyStr = [...newKeys].sort().join('|');
 
   if (!bannerDismissed) {

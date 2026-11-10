@@ -121,3 +121,4 @@ If the hub firmware has been updated, the poller may need adjustment.
 | Software pump control | | | ❌ (read-only) |
 | ML/predictive analytics | | | ❌ |
 | Cloud connectivity | | | ❌ (by design) |
+

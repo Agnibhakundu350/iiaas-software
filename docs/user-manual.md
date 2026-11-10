@@ -230,3 +230,4 @@ Columns: `ts, node, seq, source, air_temp, humidity, soil_moisture, water_raw, m
 | Alert banner appears but no sound | Browser audio blocked | Tap anywhere on the page, then wait for the next refresh |
 | Pump history empty | No relay state changes recorded | The pump has not switched on/off since the database was created |
 | CSV is empty | No data in the database | Start a data source and wait for readings |
+

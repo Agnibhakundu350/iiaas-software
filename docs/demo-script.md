@@ -185,3 +185,4 @@ The following features cannot be fully demonstrated with the simulator:
 | Actual NPK readings | Confirmed sensor units and calibration |
 | Actual pH readings | Sensor calibration confirmation |
 | Real pump relay events | Physical pump wired to Node 1 relay |
+

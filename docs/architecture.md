@@ -165,3 +165,4 @@ Sensor Node → [ESP-NOW] → Hub → [Wi-Fi HTTP] → hub_poller.py
 - **Wio-E5 Dev Kit**: The serial receiver code exists but LoRa frequency, spreading factor, and bandwidth must be confirmed with the hardware team before it can be used with real sensors.
 - **N/P/K units**: Fertilizer limits in `CFG` are clearly marked as placeholders; real thresholds require agronomy input.
 - **External weather forecast**: The dashboard displays only on-field sensor measurements. No external weather API is integrated.
+

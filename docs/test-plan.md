@@ -325,3 +325,4 @@ These cannot be fully tested without additional setup:
 | `int \| None` type hints | Requires Python 3.10+; documented in requirements |
 | Audio blocked on first load | Web Audio API requires a user gesture; documented in user manual |
 | Pump history empty on fresh DB | Only populated after relay state changes occur |
+
