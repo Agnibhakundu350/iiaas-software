@@ -59,18 +59,26 @@ def ingest(p: dict):
     ts = num(p.get("ts"))  # optional: lets the hub poller store the real time of older readings
     if ts is None or ts > time.time() + 5:
         ts = time.time()
-    with db() as c:
-        c.execute("INSERT INTO readings(ts,node,seq,rssi,source,data) VALUES(?,?,?,?,?,?)",
-                  (ts, node, seq, num(p.get("rssi")), p.get("source", "device"), json.dumps(d)))
+    c = db()
+    try:
+        with c:
+            c.execute("INSERT INTO readings(ts,node,seq,rssi,source,data) VALUES(?,?,?,?,?,?)",
+                      (ts, node, seq, num(p.get("rssi")), p.get("source", "device"), json.dumps(d)))
+    finally:
+        c.close()
     return {"ok": True, "node": node}
 
 
 def latest():
-    c, out = db(), {}
-    for n in (1, 2):
-        r = c.execute("SELECT * FROM readings WHERE node=? ORDER BY id DESC LIMIT 1", (n,)).fetchone()
-        if r:
-            out[n] = dict(ts=r["ts"], seq=r["seq"], rssi=r["rssi"], source=r["source"], data=json.loads(r["data"]))
+    c = db()
+    out = {}
+    try:
+        for n in (1, 2):
+            r = c.execute("SELECT * FROM readings WHERE node=? ORDER BY id DESC LIMIT 1", (n,)).fetchone()
+            if r:
+                out[n] = dict(ts=r["ts"], seq=r["seq"], rssi=r["rssi"], source=r["source"], data=json.loads(r["data"]))
+    finally:
+        c.close()
     return out
 
 
@@ -129,7 +137,11 @@ def history(node: int | None = None, limit: int = 100, hours: float | None = Non
         q += " WHERE " + " AND ".join(wheres)
     q += " ORDER BY id DESC LIMIT ?"
     args.append(min(limit, 2000))
-    rows = db().execute(q, args).fetchall()
+    c = db()
+    try:
+        rows = c.execute(q, args).fetchall()
+    finally:
+        c.close()
     return [dict(ts=r["ts"], node=r["node"], seq=r["seq"], source=r["source"], **json.loads(r["data"]))
             for r in reversed(rows)]
 
@@ -151,9 +163,13 @@ def pump_events(limit: int = 100):
     Returns a list of events: {ts, event:'on'|'off', soil_moisture, duration_s (for OFF events)}.
     No schema changes — reads from existing `readings` table only.
     """
-    rows = db().execute(
-        "SELECT ts, data FROM readings WHERE node=1 ORDER BY id DESC LIMIT 2000"
-    ).fetchall()
+    c = db()
+    try:
+        rows = c.execute(
+            "SELECT ts, data FROM readings WHERE node=1 ORDER BY id DESC LIMIT 2000"
+        ).fetchall()
+    finally:
+        c.close()
     rows.reverse()
     events = []
     prev_relay = None
