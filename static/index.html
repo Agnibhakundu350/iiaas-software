@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IIAAS field monitor</title>
+<style>
+:root{--bg:#f1f4ee;--ink:#1b2a20;--mut:#5a6a5f;--line:#d2dacd;--g:#2d6a3d;--w:#2a69ad;--warn:#9a6208;--bad:#b0342a;--ok:#2d6a3d}
+@media(prefers-color-scheme:dark){:root{--bg:#111812;--ink:#e5ede7;--mut:#92a398;--line:#29362d;--g:#6fc283;--w:#72aae8;--warn:#e0a53c;--bad:#ef7a6c;--ok:#6fc283}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;padding:20px 24px 8px;max-width:1100px;margin:auto}
+h1{font-size:1.5rem;margin:0;font-weight:700;letter-spacing:-.01em}
+#status{font-size:.9rem;color:var(--mut)}
+#status b{color:var(--ink)}
+main{max-width:1100px;margin:auto;padding:8px 24px 40px;display:grid;gap:28px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px}
+h2{font-size:1.05rem;margin:0 0 4px}
+.sub{color:var(--mut);font-size:.88rem;margin:0 0 10px}
+dl{margin:0}
+.row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+dt{color:var(--mut)}
+dd{margin:0;font-size:1.35rem;font-variant-numeric:tabular-nums;font-weight:600}
+dd small{font-size:.85rem;color:var(--mut);font-weight:400;margin-left:3px}
+canvas{width:100%;height:240px;display:block}
+.legend{display:flex;gap:18px;font-size:.88rem;color:var(--mut);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px}
+ul{list-style:none;margin:0;padding:0}
+li{padding:10px 12px;border-left:4px solid var(--line);background:color-mix(in srgb,var(--bg) 85%,var(--ink) 4%);margin-bottom:8px}
+li.bad{border-color:var(--bad)}li.warn{border-color:var(--warn)}li.ok{border-color:var(--ok)}li.info{border-color:var(--w)}
+a{color:var(--w)}
+:focus-visible{outline:3px solid var(--w);outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <h1>IIAAS field monitor</h1>
+  <span id="status" role="status">Connecting…</span>
+</header>
+<main>
+  <section aria-labelledby="rec">
+    <h2 id="rec">What to do now</h2>
+    <p class="sub">Rule-based advice. Fertilizer limits are placeholders until sensor units are confirmed.</p>
+    <ul id="insights"></ul>
+  </section>
+  <div class="cols">
+    <section aria-labelledby="n1"><h2 id="n1">Node 1: air and irrigation</h2><p class="sub" id="n1age">No data yet</p><dl id="d1"></dl></section>
+    <section aria-labelledby="n2"><h2 id="n2">Node 2: soil chemistry</h2><p class="sub" id="n2age">No data yet</p><dl id="d2"></dl></section>
+  </div>
+  <section aria-labelledby="ch">
+    <h2 id="ch">Soil moisture over time</h2>
+    <p class="sub">Dashed line is the 40% irrigation limit.</p>
+    <canvas id="chart" role="img" aria-label="Soil moisture history for both nodes"></canvas>
+    <div class="legend"><span><i style="background:var(--g)"></i>Node 1</span><span><i style="background:var(--w)"></i>Node 2</span></div>
+  </section>
+  <p><a href="/api/export.csv">Download readings (CSV)</a></p>
+</main>
+<script>
+const F1=[["air_temp","Air temperature","°C",1],["humidity","Humidity","%",0],["soil_moisture","Soil moisture","%",0],["water_raw","Water level (raw)","",0],["mq135_raw","MQ-135 (raw)","",0],["eco2_ppm","eCO₂ estimate","ppm",0],["relay","Pump relay","",-1]];
+const F2=[["soil_temp","Soil temperature","°C",1],["soil_moisture","Soil moisture","%",1],["ph","pH","",1],["n","Nitrogen","",0],["p","Phosphorus","",0],["k","Potassium","",0]];
+const $=s=>document.querySelector(s);
+function fmt(v,dp){if(v==null)return"–";if(dp===-1)return v?"On":"Off";return Number(v).toFixed(dp)}
+function rows(el,fields,d){el.innerHTML=fields.map(([k,l,u,dp])=>`<div class="row"><dt>${l}</dt><dd>${fmt(d&&d[k],dp)}<small>${u}</small></dd></div>`).join("")}
+function age(s){return s<60?Math.round(s)+" s ago":Math.round(s/60)+" min ago"}
+function chart(h){
+  const c=$("#chart"),r=devicePixelRatio||1,W=c.clientWidth,H=c.clientHeight;c.width=W*r;c.height=H*r;
+  const x=c.getContext("2d");x.scale(r,r);x.clearRect(0,0,W,H);
+  const css=getComputedStyle(document.documentElement),col=n=>css.getPropertyValue(n).trim();
+  const P={l:34,r:8,t:8,b:20},pw=W-P.l-P.r,ph=H-P.t-P.b,Y=v=>P.t+ph*(1-v/100);
+  x.font="12px system-ui";x.fillStyle=col("--mut");x.strokeStyle=col("--line");x.lineWidth=1;
+  [0,25,50,75,100].forEach(v=>{x.beginPath();x.moveTo(P.l,Y(v));x.lineTo(W-P.r,Y(v));x.stroke();x.fillText(v,4,Y(v)+4)});
+  x.setLineDash([6,4]);x.strokeStyle=col("--bad");x.beginPath();x.moveTo(P.l,Y(40));x.lineTo(W-P.r,Y(40));x.stroke();x.setLineDash([]);
+  if(!h.length)return;const t0=h[0].ts,t1=h[h.length-1].ts||t0+1,X=t=>P.l+pw*((t-t0)/Math.max(t1-t0,1));
+  [[1,"--g"],[2,"--w"]].forEach(([n,cv])=>{
+    const pts=h.filter(p=>p.node===n&&p.soil_moisture!=null);if(!pts.length)return;
+    x.strokeStyle=col(cv);x.lineWidth=2.5;x.beginPath();pts.forEach((p,i)=>i?x.lineTo(X(p.ts),Y(p.soil_moisture)):x.moveTo(X(p.ts),Y(p.soil_moisture)));x.stroke()});
+}
+async function tick(){
+  try{
+    const [L,I,H]=await Promise.all(["/api/latest","/api/insights","/api/history?limit=200"].map(u=>fetch(u).then(r=>r.json())));
+    const n1=L.nodes[1],n2=L.nodes[2];
+    rows($("#d1"),F1,n1&&n1.data);rows($("#d2"),F2,n2&&n2.data);
+    $("#n1age").textContent=n1?"Updated "+age(L.now-n1.ts):"No data yet";
+    $("#n2age").textContent=n2?"Updated "+age(L.now-n2.ts):"No data yet";
+    $("#insights").innerHTML=I.map(i=>`<li class="${i.level}">${i.msg}</li>`).join("");
+    const sim=[n1,n2].some(n=>n&&n.source==="sim");
+    $("#status").innerHTML=(n1||n2)?(sim?"<b>Simulated data.</b> Not from the field.":"<b>Live</b> from the field"):"Waiting for the first reading";
+    chart(H);
+  }catch(e){$("#status").textContent="Cannot reach the server"}
+}
+tick();setInterval(tick,3000);addEventListener("resize",tick);
+</script>
+</body>
+</html>
