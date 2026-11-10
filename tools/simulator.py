@@ -128,7 +128,9 @@ while a.count == 0 or i < a.count:
         log_simulated_alert(1, "warn", f"Node 1: air temperature {n1_temp} °C. Heat stress risk.")
 
     elif a.scenario == "abnormal-ph":
-        # Alternates between acidic (<5.5) and alkaline (>7.5) soil
+        # Alternates between acidic (<5.5) and alkaline (>7.5) soil.
+        # Abnormal pH is an agronomic condition displayed in the Recommendations card via /api/insights,
+        # rather than an emergency alert in the alerts table.
         n2_ph = 4.8 if (i % 6 < 3) else 8.4
         n1_soil = 52
         n1_relay = False
@@ -136,10 +138,6 @@ while a.count == 0 or i < a.count:
         n1_hum = 65
         n2_temp = 27.0
         n2_soil = 50.0
-        if n2_ph < 5.5:
-            log_simulated_alert(2, "warn", f"Node 2: soil is acidic (pH {n2_ph}). Test the soil before liming.")
-        else:
-            log_simulated_alert(2, "warn", f"Node 2: soil is alkaline (pH {n2_ph}). Test the soil before treating.")
 
     elif a.scenario == "pump-cycle":
         # Alternate pump relay state every 3 readings so transitions are clear
@@ -155,7 +153,8 @@ while a.count == 0 or i < a.count:
             log_simulated_alert(1, "bad", f"Node 1: soil moisture {n1_soil}% is below 40%. Irrigate.")
 
     elif a.scenario == "critical":
-        # Combined crisis scenario
+        # Combined crisis scenario: low soil moisture and extreme heat generate separate alerts.
+        # Abnormal pH (4.9) is sent in Node 2 telemetry and rendered as agronomic guidance in Recommendations.
         n1_soil = 31
         n1_relay = True
         n1_temp = 40.2
@@ -165,7 +164,6 @@ while a.count == 0 or i < a.count:
         n2_ph = 4.9
         log_simulated_alert(1, "bad", f"Node 1: soil moisture {n1_soil}% is below 40%. Irrigate.")
         log_simulated_alert(1, "warn", f"Node 1: air temperature {n1_temp} °C. Heat stress risk.")
-        log_simulated_alert(2, "warn", f"Node 2: soil is acidic (pH {n2_ph}). Test the soil before liming.")
 
     p1 = {
         "node": "ESP32_1",
