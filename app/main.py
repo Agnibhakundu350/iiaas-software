@@ -4,6 +4,7 @@ import csv, io, json, math, sqlite3, time
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, Response
+from app.alerts import router as alerts_router
 
 BASE = Path(__file__).resolve().parent.parent
 DB = BASE / "iiaas.db"
@@ -11,6 +12,7 @@ DB = BASE / "iiaas.db"
 CFG = dict(moist_low=40, moist_high=80, ph_low=5.5, ph_high=7.5, temp_high=38,
            offline_s=120, n_low=50, p_low=20, k_low=100)
 app = FastAPI(title="IIAAS")
+app.include_router(alerts_router)
 
 
 def db():
